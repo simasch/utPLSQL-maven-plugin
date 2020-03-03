@@ -1,4 +1,4 @@
-package org.utplsql.maven.plugin.helper;
+package org.utplsql.maven.plugin.common;
 
 import java.util.Arrays;
 

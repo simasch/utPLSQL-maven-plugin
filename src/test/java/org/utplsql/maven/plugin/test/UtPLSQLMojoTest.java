@@ -35,8 +35,8 @@ import org.utplsql.api.Version;
 import org.utplsql.api.reporter.Reporter;
 import org.utplsql.api.reporter.ReporterFactory;
 import org.utplsql.maven.plugin.UtPLSQLMojo;
-import org.utplsql.maven.plugin.model.ReporterParameter;
-import org.utplsql.maven.plugin.reporter.ReporterWriter;
+import org.utplsql.maven.plugin.reporter.ReporterParameter;
+import org.utplsql.maven.plugin.reporter.ReporterService;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({ DBHelper.class, ReporterFactory.class })
@@ -283,7 +283,7 @@ public class UtPLSQLMojoTest {
         }
 
         // Assert that we added only the necessary reporters to the writer.
-        ReporterWriter reporterWritter = Whitebox.getInternalState(utplsqlMojo, "reporterWriter");
+        ReporterService reporterWritter = Whitebox.getInternalState(utplsqlMojo, "reporterWriter");
         List<Pair<Reporter, ReporterParameter>> listReporters = 
                 Whitebox.getInternalState(reporterWritter, "listReporters");
         assertEquals(3, listReporters.size());

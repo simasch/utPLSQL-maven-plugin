@@ -7,8 +7,13 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+
+import javax.inject.Inject;
+import javax.inject.Provider;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.maven.model.Resource;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -24,22 +29,20 @@ import org.utplsql.api.KeyValuePair;
 import org.utplsql.api.TestRunner;
 import org.utplsql.api.Version;
 import org.utplsql.api.db.DatabaseInformation;
-import org.utplsql.api.db.DefaultDatabaseInformation;
 import org.utplsql.api.exception.SomeTestsFailedException;
-import org.utplsql.api.reporter.CoreReporters;
 import org.utplsql.api.reporter.Reporter;
-import org.utplsql.api.reporter.ReporterFactory;
-import org.utplsql.maven.plugin.helper.PluginDefault;
-import org.utplsql.maven.plugin.helper.SQLScannerHelper;
-import org.utplsql.maven.plugin.model.ReporterParameter;
-import org.utplsql.maven.plugin.reporter.ReporterWriter;
-
-import oracle.jdbc.pool.OracleDataSource;
+import org.utplsql.maven.plugin.common.CustomTypeMapping;
+import org.utplsql.maven.plugin.common.PluginDefault;
+import org.utplsql.maven.plugin.common.SQLScannerHelper;
+import org.utplsql.maven.plugin.db.ConnectionFactory;
+import org.utplsql.maven.plugin.exception.UtPLSQLMojoException;
+import org.utplsql.maven.plugin.reporter.ReporterParameter;
+import org.utplsql.maven.plugin.reporter.ReporterService;
 
 /**
  * This class expose the {@link TestRunner} interface to Maven.
  * 
- * @author Alberto Hernández
+ * @author Alberto Hernández, Vinicius Avellar
  */
 @Mojo(name = "test", defaultPhase = LifecyclePhase.TEST)
 public class UtPLSQLMojo extends AbstractMojo {
@@ -47,33 +50,24 @@ public class UtPLSQLMojo extends AbstractMojo {
     @Parameter(readonly = true, defaultValue = "${project}")
     private MavenProject project;
 
-    @Parameter(property = "dbUrl")
-    protected String url;
-
-    @Parameter(property = "dbUser")
-    protected String user;
-
-    @Parameter(property = "dbPass")
-    protected String password;
+    @Parameter
+    private String includeObject;
 
     @Parameter
-    protected String includeObject;
-
-    @Parameter
-    protected String excludeObject;
+    private String excludeObject;
 
     @Parameter(defaultValue = "false")
-    protected boolean skipCompatibilityCheck;
+    private boolean skipCompatibilityCheck;
 
     @Parameter
-    protected List<ReporterParameter> reporters = new ArrayList<>();
+    private List<ReporterParameter> reporters = new ArrayList<>();
 
     @Parameter
-    protected List<String> paths = new ArrayList<>();
+    private List<String> paths = new ArrayList<>();
 
     // Sources Configuration
     @Parameter
-    protected List<Resource> sources = new ArrayList<>();
+    private List<Resource> sources = new ArrayList<>();
 
     @Parameter
     private String sourcesOwner;
@@ -95,7 +89,7 @@ public class UtPLSQLMojo extends AbstractMojo {
 
     // Tests Configuration
     @Parameter
-    protected List<Resource> tests = new ArrayList<>();
+    private List<Resource> tests = new ArrayList<>();
 
     @Parameter
     private String testsOwner;
@@ -125,76 +119,99 @@ public class UtPLSQLMojo extends AbstractMojo {
     private Integer randomTestOrderSeed;
 
     @Parameter(defaultValue = "${project.build.directory}", readonly = true)
-    protected String targetDir;
+    private String targetDir;
 
     @Parameter(defaultValue = "${maven.test.failure.ignore}")
-    protected boolean ignoreFailure;
+    private boolean ignoreFailure;
 
     // Color in the console, bases on Maven logging configuration.
     private boolean colorConsole = MessageUtils.isColorEnabled();
 
-    private ReporterWriter reporterWriter;
+    private ConnectionFactory connectionFactory;
 
-    private DatabaseInformation databaseInformation = new DefaultDatabaseInformation();
+    private DatabaseInformation databaseInformation;
+
+    private ReporterService reporterService;
+
+    @Inject
+    public UtPLSQLMojo(
+            final ConnectionFactory connectionFactory,
+            final Provider<DatabaseInformation> databaseInformationProvider,
+            final ReporterService reporterWriter) {
+
+        this.connectionFactory = connectionFactory;
+        this.databaseInformation = databaseInformationProvider.get();
+        this.reporterService = reporterWriter;
+    }
 
     /**
      * Executes the plugin.
      */
     @Override
     public void execute() throws MojoExecutionException {
+        try {
+            this.executePlugin();
+        } catch (UtPLSQLMojoException e) {
+            throw new MojoExecutionException(e.getMessage(), e.getCause());
+        }
+    }
+
+    private void executePlugin() {
 
         getLog().debug("Java Api Version = " + JavaApiVersionInfo.getVersion());
-        loadConfFromEnvironment();
+        final Connection databaseConnection = this.connectionFactory.getConnection();
 
-        Connection connection = null;
+        if (this.reporters.isEmpty()) {
+            this.reporters.add(ReporterParameter.defaultReporter());
+        }
+
+        final List<Pair<Reporter, ReporterParameter>> reporterPairList = this.reporters.stream()
+                .map(reporterParameter -> this.reporterService.initReporter(databaseConnection, reporterParameter))
+                .collect(Collectors.toList());
+
+        final List<Reporter> utplsqlReporterList = reporterPairList.stream()
+                .collect(Collectors.mapping(Pair::getLeft, Collectors.toList()));
+
         try {
-            FileMapperOptions sourceMappingOptions = buildSourcesOptions();
-            FileMapperOptions testMappingOptions = buildTestsOptions();
-            OracleDataSource ds = new OracleDataSource();
-            ds.setURL(url);
-            ds.setUser(user);
-            ds.setPassword(password);
-            connection = ds.getConnection();
-
-            Version utlVersion = this.databaseInformation.getUtPlsqlFrameworkVersion(connection);
+            Version utlVersion = this.databaseInformation.getUtPlsqlFrameworkVersion(databaseConnection);
             getLog().info("utPLSQL Version = " + utlVersion);
 
-            List<Reporter> reporterList = initReporters(connection, utlVersion, ReporterFactory.createEmpty());
+            final FileMapperOptions sourceMappingOptions = this.buildSourcesOptions();
+            final FileMapperOptions testMappingOptions = this.buildTestsOptions();
+            logParameters(sourceMappingOptions, testMappingOptions, utplsqlReporterList);
 
-            logParameters(sourceMappingOptions, testMappingOptions, reporterList);
-
-            TestRunner runner = new TestRunner()
-                    .addPathList(paths)
-                    .addReporterList(reporterList)
+            TestRunner testRunner = new TestRunner()
+                    .addPathList(this.paths)
+                    .addReporterList(utplsqlReporterList)
                     .sourceMappingOptions(sourceMappingOptions)
                     .testMappingOptions(testMappingOptions)
-                    .skipCompatibilityCheck(skipCompatibilityCheck)
-                    .colorConsole(colorConsole)
-                    .addTags(tags)
-                    .randomTestOrder(randomTestOrder)
-                    .randomTestOrderSeed(randomTestOrderSeed)
-                    .failOnErrors(!ignoreFailure);
+                    .skipCompatibilityCheck(this.skipCompatibilityCheck)
+                    .colorConsole(this.colorConsole)
+                    .addTags(this.tags)
+                    .randomTestOrder(this.randomTestOrder)
+                    .randomTestOrderSeed(this.randomTestOrderSeed)
+                    .failOnErrors(!this.ignoreFailure);
 
-            if (StringUtils.isNotBlank(excludeObject)) {
-                runner.excludeObject(excludeObject);
+            if (StringUtils.isNotBlank(this.excludeObject)) {
+                testRunner.excludeObject(this.excludeObject);
             }
-            if (StringUtils.isNotBlank(includeObject)) {
-                runner.includeObject(includeObject);
+            if (StringUtils.isNotBlank(this.includeObject)) {
+                testRunner.includeObject(this.includeObject);
             }
 
-            runner.run(connection);
-
+            testRunner.run(databaseConnection);
         } catch (SomeTestsFailedException e) {
             if (!this.ignoreFailure) {
-                throw new MojoExecutionException(e.getMessage(), e);
+                throw new UtPLSQLMojoException(e.getMessage(), e);
             }
         } catch (SQLException e) {
-            throw new MojoExecutionException(e.getMessage(), e);
+            throw new UtPLSQLMojoException(e.getMessage(), e);
         } finally {
             try {
-                if (null != connection) {
-                    reporterWriter.writeReporters(connection);
-                    connection.close();
+                if (null != databaseConnection) {
+                    reporterPairList.forEach(reporterPair -> this.reporterService.writeReporter(
+                            databaseConnection, this.targetDir, reporterPair));
+                    databaseConnection.close();
                 }
             } catch (Exception e) {
                 getLog().error(e.getMessage(), e);
@@ -202,21 +219,7 @@ public class UtPLSQLMojo extends AbstractMojo {
         }
     }
 
-    private void loadConfFromEnvironment() {
-        if (StringUtils.isEmpty(url)) {
-            url = System.getProperty("dbUrl");
-        }
-
-        if (StringUtils.isEmpty(user)) {
-            user = System.getProperty("dbUser");
-        }
-
-        if (StringUtils.isEmpty(password)) {
-            password = System.getProperty("dbPass");
-        }
-    }
-
-    private FileMapperOptions buildSourcesOptions() throws MojoExecutionException {
+    private FileMapperOptions buildSourcesOptions() {
         try {
             if (sources.isEmpty()) {
                 File defaultSourceDirectory = new File(project.getBasedir(), PluginDefault.SOURCE_DIRECTORY);
@@ -262,12 +265,12 @@ public class UtPLSQLMojo extends AbstractMojo {
             return fileMapperOptions;
 
         } catch (Exception e) {
-            throw new MojoExecutionException("Invalid <SOURCES> in your pom.xml", e);
+            throw new UtPLSQLMojoException("Invalid <SOURCES> in your pom.xml", e);
         }
 
     }
 
-    private FileMapperOptions buildTestsOptions() throws MojoExecutionException {
+    private FileMapperOptions buildTestsOptions() {
         try {
             if (tests.isEmpty()) {
                 File defaultTestDirectory = new File(project.getBasedir(), PluginDefault.TEST_DIRECTORY);
@@ -313,42 +316,9 @@ public class UtPLSQLMojo extends AbstractMojo {
             return fileMapperOptions;
 
         } catch (Exception e) {
-            throw new MojoExecutionException("Invalid <TESTS> in your pom.xml: " + e.getMessage());
+            throw new UtPLSQLMojoException("Invalid <TESTS> in your pom.xml: " + e.getMessage());
         }
 
-    }
-
-    private List<Reporter> initReporters(Connection connection, Version utlVersion, ReporterFactory reporterFactory)
-            throws SQLException {
-
-        List<Reporter> reporterList = new ArrayList<>();
-        reporterWriter = new ReporterWriter(targetDir, utlVersion);
-
-        if (reporters.isEmpty()) {
-            ReporterParameter reporterParameter = new ReporterParameter();
-            reporterParameter.setConsoleOutput(true);
-            reporterParameter.setName(CoreReporters.UT_DOCUMENTATION_REPORTER.name());
-            reporters.add(reporterParameter);
-        }
-
-        for (ReporterParameter reporterParameter : reporters) {
-            Reporter reporter = reporterFactory.createReporter(reporterParameter.getName());
-            reporter.init(connection);
-            reporterList.add(reporter);
-
-            // Turns the console output on by default if both file and console output are
-            // empty.
-            if (!reporterParameter.isFileOutput() && null == reporterParameter.getConsoleOutput()) {
-                reporterParameter.setConsoleOutput(true);
-            }
-
-            // Only added the reporter if at least one of the output is required
-            if (StringUtils.isNotBlank(reporterParameter.getFileOutput()) || reporterParameter.isConsoleOutput()) {
-                reporterWriter.addReporter(reporterParameter, reporter);
-            }
-        }
-
-        return reporterList;
     }
 
     private void logParameters(FileMapperOptions sourceMappingOptions, FileMapperOptions testMappingOptions,
