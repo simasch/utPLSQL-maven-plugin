@@ -47,43 +47,47 @@
                                 </reporter>
                             </reporters>
 
-                            <sources>
-                                <source>
-                                    <directory>scripts/sources</directory>
-                                    <includes>
-                                        <include>**/*sql</include>
-                                    </includes>
-                                </source>
-                            </sources>
-                            <sourcesRegexExpression>.*/(\w+)/(\w+)/(\w+)\.\w{3}</sourcesRegexExpression>
-                            <sourcesOwnerSubexpression>1</sourcesOwnerSubexpression>
-                            <sourcesNameSubexpression>3</sourcesNameSubexpression>
-                            <sourcesTypeSubexpression>2</sourcesTypeSubexpression>
-                            <sourcesCustomTypeMapping>
-                                <customTypeMapping>
-                                    <type>package body</type>
-                                    <customMapping>package_bodies</customMapping>
-                                </customTypeMapping>
-                            </sourcesCustomTypeMapping>
+                            <sourceFileMapping>
+                                <resources>
+                                    <resource>
+                                        <directory>scripts/sources</directory>
+                                        <includes>
+                                            <include>**/*sql</include>
+                                        </includes>
+                                    </resource>
+                                </resources>
+                                <regexExpression>.*/(\w+)/(\w+)/(\w+)\.\w{3}</regexExpression>
+                                <ownerSubexpression>1</ownerSubexpression>
+                                <nameSubexpression>3</nameSubexpression>
+                                <typeSubexpression>2</typeSubexpression>
+                                <customTypeMappings>
+                                    <customTypeMapping>
+                                        <type>package body</type>
+                                        <customMapping>package_bodies</customMapping>
+                                    </customTypeMapping>
+                                </customTypeMappings>
+                            </sourceFileMapping>
 
-                            <tests>
-                                <test>
-                                    <directory>scripts/test</directory>
-                                    <includes>
-                                        <include>**/*sql</include>
-                                    </includes>
-                                </test>
-                            </tests>
-                            <testsRegexExpression>.*/(\w+)/(\w+)/(\w+)\.\w{3}</testsRegexExpression>
-                            <testsOwnerSubexpression>1</testsOwnerSubexpression>
-                            <testsNameSubexpression>3</testsNameSubexpression>
-                            <testsTypeSubexpression>2</testsTypeSubexpression>
-                            <testsCustomTypeMapping>
-                                <customTypeMapping>
-                                    <type>package body</type>
-                                    <customMapping>package_bodies</customMapping>
-                                </customTypeMapping>
-                            </testsCustomTypeMapping>
+                            <testFileMapping>
+                                <resources>
+                                    <resource>
+                                        <directory>scripts/test</directory>
+                                        <includes>
+                                            <include>**/*sql</include>
+                                        </includes>
+                                    </resource>
+                                </resources>
+                                <regexExpression>.*/(\w+)/(\w+)/(\w+)\.\w{3}</regexExpression>
+                                <ownerSubexpression>1</ownerSubexpression>
+                                <nameSubexpression>3</nameSubexpression>
+                                <typeSubexpression>2</typeSubexpression>
+                                <customTypeMappings>
+                                    <customTypeMapping>
+                                        <type>package body</type>
+                                        <customMapping>package_bodies</customMapping>
+                                    </customTypeMapping>
+                                </customTypeMappings>
+                            </testFileMapping>
                         </configuration>
                     </execution>
                 </executions>

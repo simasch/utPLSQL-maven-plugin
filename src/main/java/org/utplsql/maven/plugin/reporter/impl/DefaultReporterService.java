@@ -25,9 +25,7 @@ import org.utplsql.api.outputBuffer.OutputBuffer;
 import org.utplsql.api.outputBuffer.OutputBufferProvider;
 import org.utplsql.api.reporter.Reporter;
 import org.utplsql.api.reporter.ReporterFactory;
-import org.utplsql.maven.plugin.db.DatabaseInformationProvider;
 import org.utplsql.maven.plugin.exception.UtPLSQLMojoException;
-import org.utplsql.maven.plugin.reporter.ReporterFactoryProvider;
 import org.utplsql.maven.plugin.reporter.ReporterParameter;
 import org.utplsql.maven.plugin.reporter.ReporterService;
 
@@ -37,18 +35,11 @@ public final class DefaultReporterService implements ReporterService {
 
     private static final Log LOG = new SystemStreamLog();
 
+    @Inject
     private DatabaseInformation databaseInformation;
 
-    private ReporterFactory reporterFactory;
-
     @Inject
-    public DefaultReporterService(
-            final DatabaseInformationProvider databaseInformationProvider,
-            final ReporterFactoryProvider reporterFactoryProvider) {
-
-        this.databaseInformation = databaseInformationProvider.get();
-        this.reporterFactory = reporterFactoryProvider.get();
-    }
+    private ReporterFactory reporterFactory;
 
     public Pair<Reporter, ReporterParameter> initReporter(
             final Connection databaseConnection,

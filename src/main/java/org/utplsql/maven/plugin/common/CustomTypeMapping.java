@@ -11,7 +11,7 @@ import lombok.Data;
  * }
  */
 @Data
-public class CustomTypeMapping {
+public final class CustomTypeMapping {
 
     /**
      * Object type.

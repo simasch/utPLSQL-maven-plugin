@@ -46,34 +46,37 @@
                                 </reporter>
                             </reporters>
 
-                            <sources>
-                                <source>
-                                    <directory>scripts/sources</directory>
-                                    <includes>
-                                        <include>**/*bdy</include>
-                                        <include>**/*spc</include>
-                                    </includes>
-                                </source>
-                            </sources>
-                            <sourcesRegexExpression>.*(\\|\/)(\w+)(\\|\/)(\w+)(\\|\/)(\w+).(\w{3})</sourcesRegexExpression>
-                            <sourcesOwnerSubexpression>2</sourcesOwnerSubexpression>
-                            <sourcesNameSubexpression>6</sourcesNameSubexpression>
-                            <sourcesTypeSubexpression>7</sourcesTypeSubexpression>
+                            <sourceFileMapping>
+                                <resources>
+                                    <resource>
+                                        <directory>scripts/sources</directory>
+                                        <includes>
+                                            <include>**/*bdy</include>
+                                            <include>**/*spc</include>
+                                        </includes>
+                                    </resource>
+                                </resources>
+                                <regexExpression>.*(\\|\/)(\w+)(\\|\/)(\w+)(\\|\/)(\w+).(\w{3})</regexExpression>
+                                <ownerSubexpression>2</ownerSubexpression>
+                                <nameSubexpression>6</nameSubexpression>
+                                <typeSubexpression>7</typeSubexpression>
+                            </sourceFileMapping>
 
-                            <tests>
-                                <test>
-                                    <directory>scripts/test</directory>
-                                    <includes>
-                                        <include>**/*bdy</include>
-                                        <include>**/*spc</include>
-                                    </includes>
-                                </test>
-                            </tests>
-                            <testsRegexExpression>.*(\\|\/)(\w+)(\\|\/)(\w+)(\\|\/)(\w+).(\w{3})</testsRegexExpression>
-                            <testsOwnerSubexpression>2</testsOwnerSubexpression>
-                            <testsNameSubexpression>6</testsNameSubexpression>
-                            <testsTypeSubexpression>7</testsTypeSubexpression>
-
+                            <testFileMapping>
+                                <resources>
+                                    <resource>
+                                        <directory>scripts/test</directory>
+                                        <includes>
+                                            <include>**/*bdy</include>
+                                            <include>**/*spc</include>
+                                        </includes>
+                                    </resource>
+                                </resources>
+                                <regexExpression>.*(\\|\/)(\w+)(\\|\/)(\w+)(\\|\/)(\w+).(\w{3})</regexExpression>
+                                <ownerSubexpression>2</ownerSubexpression>
+                                <nameSubexpression>6</nameSubexpression>
+                                <typeSubexpression>7</typeSubexpression>
+                            </testFileMapping>
                         </configuration>
                     </execution>
                 </executions>

@@ -46,31 +46,32 @@
                                 </reporter>
                             </reporters>
 
-                            <sources>
-                                <source>
-                                    <directory>scripts/sources</directory>
-                                    <includes>
-                                        <include>**/*bdy</include>
-                                        <include>**/*spc</include>
-                                    </includes>
-                                </source>
-                            </sources>
+                            <sourceFileMapping>
+                                <resources>
+                                    <resource>
+                                        <directory>scripts/sources</directory>
+                                        <includes>
+                                            <include>**/*bdy</include>
+                                            <include>**/*spc</include>
+                                        </includes>
+                                    </resource>
+                                </resources>
+                            </sourceFileMapping>
 
-                            <tests>
-                                <test>
-                                    <directory>scripts/tests</directory>
-                                    <includes>
-                                        <include>**/*bdy</include>
-                                        <include>**/*spc</include>
-                                    </includes>
-                                </test>
-                            </tests>
-
+                            <testFileMapping>
+                                <resources>
+                                    <resource>
+                                        <directory>scripts/tests</directory>
+                                        <includes>
+                                            <include>**/*bdy</include>
+                                            <include>**/*spc</include>
+                                        </includes>
+                                    </resource>
+                                </resources>
+                            </testFileMapping>
                         </configuration>
-
                     </execution>
                 </executions>
-
             </plugin>
         </plugins>
     </build>
