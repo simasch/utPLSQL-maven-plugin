@@ -10,5 +10,5 @@ VOLUME="/utPLSQL"
 
 git clone --depth=1 --branch=${UTPLSQL_VERSION} https://github.com/utPLSQL/utPLSQL.git ${UTPLSQL_DIR}
 
-docker run --rm -v $(pwd)/${UTPLSQL_DIR}:${VOLUME} -w ${VOLUME}/source --network host --entrypoint sqlplus ${SQLPLUS_IMAGE} \
+docker run --rm -v $(pwd)/${UTPLSQL_DIR}:${VOLUME} -w ${VOLUME}/source --network container:${ORACLE_VERSION} --entrypoint sqlplus ${SQLPLUS_IMAGE} \
     sys/oracle@${DB_URL} as sysdba @install_headless.sql ${DB_UT3_USER} ${DB_UT3_PASS} users
