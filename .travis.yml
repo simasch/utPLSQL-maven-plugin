@@ -39,10 +39,10 @@ install:
 
 script:
   - echo "Run Unit Tests"
-  - mvn test
+  - mvn -X test
   - echo "Run Integration Tests"
-  - mvn verify -Pintegration -DdbUser="${DB_UT3_USER}" -DdbPass="${DB_UT3_PASS}" -DdbUrl="jdbc:oracle:thin:@${DB_URL}"
-  - mvn sonar:sonar -Dsonar.projectKey=org.utplsql:utplsql-maven-plugin
+  - mvn -X verify sonar:sonar -Pintegration -DdbUser="${DB_UT3_USER}" -DdbPass="${DB_UT3_PASS}" -DdbUrl="jdbc:oracle:thin:@${DB_URL}"
+
 
 before_deploy:
   - echo $GPG_SECRET_KEYS | base64 --decode | ${GPG_EXECUTABLE} --import
